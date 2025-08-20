@@ -1,14 +1,15 @@
 // FrontProductsAPI/pages/products.js
 import React, { useState, useEffect } from "react";
+import { useRouter } from "next/router";
 
 export default function ProductsPage() {
   const [newProduct, setNewProduct] = useState({ name: "", price: "" });
   const [products, setProducts] = useState([]);
-  const [setShowCreate] = useState(false);
+  const [showCreate, setShowCreate] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isModalOpenCreate, setIsModalOpenCreate] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState(null);
-
+  const router = useRouter();
   useEffect(() => {
     const fetchProducts = async () => {
       try {
@@ -147,17 +148,17 @@ export default function ProductsPage() {
     setIsModalOpenCreate(false);
   };
 
+  const handleLogout = () => {
+    localStorage.removeItem("token"); // borra el token
+    router.push("/"); // redirige al login (index.js)
+  };
+
   return (
     <div className="p-6 max-w-3xl mx-auto text-black w-full min-h-[auto] bg-gray-50 divPrin">
       <h1 className="text-3xl font-bold mb-6 text-black">
         Catálogo de Productos
       </h1>
-      <button
-        onClick={() => openModalCreate()}
-        className="px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-400 right"
-      >
-        Crear nuevo producto
-      </button>
+
       <table className="w-full center border-collapse text-left bg-white shadow-sm">
         <thead>
           <tr className="border-b border-black">
@@ -194,7 +195,7 @@ export default function ProductsPage() {
                       alert("Registro eliminado con éxito");
                     }
                   }}
-                  className="px-3 py-1 bg-red-500 text-white rounded hover:bg-red-400 deleteb"
+                  className="px-3 py-1 bg-red-500 text-white rounded hover:bg-red-400 deleteb buttonCRUD"
                 >
                   Eliminar
                 </button>
@@ -203,6 +204,19 @@ export default function ProductsPage() {
           ))}
         </tbody>
       </table>
+      <button
+        onClick={() => openModalCreate()}
+        className="px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-400 right created "
+      >
+        Crear nuevo producto
+      </button>
+
+      <button
+        onClick={handleLogout}
+        className="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 logout-button"
+      >
+        Cerrar Sesión
+      </button>
 
       {isModalOpen && (
         <div className="modal-overlay">
