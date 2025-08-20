@@ -2,10 +2,13 @@
 import React, { useState, useEffect } from "react";
 
 export default function ProductsPage() {
+  const [newProduct, setNewProduct] = useState({ name: "", price: "" });
   const [products, setProducts] = useState([]);
+  const [setShowCreate] = useState(false);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isModalOpenCreate, setIsModalOpenCreate] = useState(false);
+  const [selectedProduct, setSelectedProduct] = useState(null);
 
-  // ---- Falla anterior: si hacíamos data.slice(1) perdíamos el primer producto
-  // Fetch de productos desde el backend
   useEffect(() => {
     const fetchProducts = async () => {
       try {
@@ -20,6 +23,7 @@ export default function ProductsPage() {
     fetchProducts();
   }, []);
 
+  //Funcion Delete
   const handleDelete = async (id) => {
     try {
       await fetch(`http://localhost:4000/products/${id}`, { method: "DELETE" });
@@ -28,28 +32,53 @@ export default function ProductsPage() {
       console.error("Error al eliminar producto:", err);
     }
   };
+  //Funcion Create
+  const handleCreate = async () => {
+    const payload = {
+      name: newProduct.name.trim(),
+      quantity: Number(newProduct.quantity),
+      price: Number(newProduct.price),
+    };
+    if (!payload.name) {
+      alert("El nombre es obligatorio");
+      return;
+    }
 
-  const handleEdit = (id) => {
-    // Aquí podrías abrir un modal o redirigir a otra página de edición
-    console.log("Editar producto con ID:", id);
+    try {
+      const res = await fetch("http://localhost:4000/products", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          // Si tu back protege con JWT, descomenta:
+          // Authorization: `Bearer ${localStorage.getItem("token") || ""}`,
+        },
+        body: JSON.stringify(payload),
+      });
+
+      if (!res.ok) {
+        const txt = await res.text();
+        throw new Error(txt || "Error al crear");
+      }
+
+      const created = await res.json();
+
+      // Si el back devuelve el producto creado con id:
+      if (created && created.id) {
+        setProducts((prev) => [...prev, created]);
+      } else {
+        // Si no devuelve el objeto, recarga la lista:
+        await fetchProducts();
+      }
+
+      setShowCreate(false);
+      setNewProduct({ name: "", quantity: 0, price: 0 });
+      alert("Producto creado");
+      closeModalCreate(false);
+    } catch (e) {
+      alert("Error al crear: " + e.message);
+    }
   };
-
-  // Estado en tu componente principal
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [selectedProduct, setSelectedProduct] = useState(null);
-
-  // Función para abrir modal
-  const openModal = (product) => {
-    setSelectedProduct(product);
-    setIsModalOpen(true);
-  };
-
-  // Función para cerrar modal
-  const closeModal = () => {
-    setIsModalOpen(false);
-    setSelectedProduct(null);
-  };
-
+  //Funcion Update
   const handleUpdate = async () => {
     if (!selectedProduct) return;
 
@@ -98,11 +127,37 @@ export default function ProductsPage() {
     }
   };
 
+  // Función para abrir modal de edit
+  const openModal = (product) => {
+    setSelectedProduct(product);
+    setIsModalOpen(true);
+  };
+  // Función para abrir modal de create
+  const openModalCreate = (product) => {
+    setIsModalOpenCreate(true);
+  };
+
+  // Función para cerrar modal
+  const closeModal = () => {
+    setIsModalOpen(false);
+    setSelectedProduct(null);
+  };
+  // Función para cerrar modal create
+  const closeModalCreate = () => {
+    setIsModalOpenCreate(false);
+  };
+
   return (
     <div className="p-6 max-w-3xl mx-auto text-black w-full min-h-[auto] bg-gray-50 divPrin">
       <h1 className="text-3xl font-bold mb-6 text-black">
         Catálogo de Productos
       </h1>
+      <button
+        onClick={() => openModalCreate()}
+        className="px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-400 right"
+      >
+        Crear nuevo producto
+      </button>
       <table className="w-full center border-collapse text-left bg-white shadow-sm">
         <thead>
           <tr className="border-b border-black">
@@ -152,7 +207,8 @@ export default function ProductsPage() {
       {isModalOpen && (
         <div className="modal-overlay">
           <div className="modal-content">
-            <h2>Editar Producto</h2>
+            <h1>Editar Producto</h1>
+            <h2>Nombre</h2>
             <input
               type="text"
               value={selectedProduct?.name || ""}
@@ -160,6 +216,7 @@ export default function ProductsPage() {
                 setSelectedProduct({ ...selectedProduct, name: e.target.value })
               }
             />
+            <h2>Precio</h2>
             <input
               type="number"
               value={selectedProduct?.price || ""}
@@ -170,7 +227,7 @@ export default function ProductsPage() {
                 })
               }
             />
-
+            <h2>Cantidad</h2>
             <input
               type="number"
               value={selectedProduct?.quantity || ""}
@@ -184,6 +241,42 @@ export default function ProductsPage() {
             <div className="modal-buttons">
               <button onClick={handleUpdate}>Guardar</button>
               <button onClick={closeModal}>Cancelar</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {isModalOpenCreate && (
+        <div className="modal-overlay">
+          <div className="modal-content">
+            <h1>Editar Producto</h1>
+            <h2>Nombre</h2>
+            <input
+              type="text"
+              value={newProduct.name}
+              onChange={(e) =>
+                setNewProduct({ ...newProduct, name: e.target.value })
+              }
+            />
+            <h2>Precio</h2>
+            <input
+              type="number"
+              value={newProduct.price}
+              onChange={(e) =>
+                setNewProduct({ ...newProduct, price: e.target.value })
+              }
+            />
+            <h2>Cantidad</h2>
+            <input
+              type="number"
+              value={newProduct.quantity}
+              onChange={(e) =>
+                setNewProduct({ ...newProduct, quantity: e.target.value })
+              }
+            />
+            <div className="modal-buttons">
+              <button onClick={handleCreate}>Guardar</button>
+              <button onClick={closeModalCreate}>Cancelar</button>
             </div>
           </div>
         </div>
